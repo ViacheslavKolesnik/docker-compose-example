@@ -1,0 +1,62 @@
+version: "3.2"
+services:
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: 'rabbitmq'
+    ports:
+        - 5672:5672
+        - 15672:15672
+    volumes:
+        - ./volumes/rabbitmq/data/:/var/lib/rabbitmq/
+        - ./volumes/rabbitmq/log/:/var/log/rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ce-user #${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ce-pass #${RABBITMQ_DEFAULT_PASS}
+    networks:
+      compose_example_network:
+        ipv4_address: 10.1.0.5
+    healthcheck:
+      test: ["CMD", "nc", "-z", "10.1.0.5", "5672"]
+      interval: 5s
+      timeout: 15s
+      retries: 5
+  postgres:
+    image: "postgres:13-alpine"
+    container_name: 'postgres'
+    ports:
+        - 5432:5432
+    volumes:
+      - ./volumes/postgres-data:/var/lib/postgresql/data/
+    environment:
+      POSTGRES_USER: ce-user
+      POSTGRES_PASSWORD: ce-pass
+      POSTGRES_DB: ce_database
+    networks:
+      compose_example_network:
+        ipv4_address: 10.1.0.6
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ce-user -d ce_database"]
+      interval: 5s
+      timeout: 15s
+      retries: 5
+  sender:
+    build: sender/.
+    environment:
+      RABBIT_HOST: 10.1.0.5
+      RABBIT_PORT: 5672
+      RABBIT_USER: ce-user
+      RABBIT_PASSWORD: ce-pass
+      RABBIT_QUEUE_NAME: compose-example-queue
+    depends_on:
+      - rabbitmq
+    networks:
+      compose_example_network:
+        ipv4_address: 10.1.0.10
+
+networks:
+  compose_example_network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.1.0.0/24

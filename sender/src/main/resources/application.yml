@@ -1,0 +1,8 @@
+spring:
+  rabbitmq:
+    host: ${RABBIT_HOST}
+    port: ${RABBIT_PORT}
+    username: ${RABBIT_USER}
+    password: ${RABBIT_PASSWORD}
+
+rabbitmq-queue-name: ${RABBIT_QUEUE_NAME}
