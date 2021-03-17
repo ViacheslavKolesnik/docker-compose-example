@@ -6,3 +6,4 @@ spring:
     password: ${RABBIT_PASSWORD}
 
 rabbitmq-queue-name: ${RABBIT_QUEUE_NAME}
+block-rate: ${BLOCK_RATE}

@@ -1,12 +1,9 @@
 package com.vkolesnyk.studying.sender.scheduler;
 
 import com.google.gson.Gson;
-import com.vkolesnyk.studying.sender.dto.RabbitConfig;
 import com.vkolesnyk.studying.sender.generator.BlockGenerator;
+import com.vkolesnyk.studying.sender.sender.RabbitSender;
 import lombok.extern.log4j.Log4j2;
-import org.springframework.amqp.core.Message;
-import org.springframework.amqp.core.MessageProperties;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -14,22 +11,19 @@ import org.springframework.stereotype.Component;
 @Component
 public final class BlockScheduler {
 
-    private final RabbitTemplate rabbitTemplate;
-    private final RabbitConfig rabbitConfig;
     private final Gson gson;
+    private final RabbitSender rabbitSender;
 
-    public BlockScheduler(RabbitTemplate rabbitTemplate, RabbitConfig rabbitConfig, Gson gson) {
-        this.rabbitTemplate = rabbitTemplate;
-        this.rabbitConfig = rabbitConfig;
+    public BlockScheduler(Gson gson, RabbitSender rabbitSender) {
+        this.rabbitSender = rabbitSender;
         this.gson = gson;
     }
 
-    @Scheduled(initialDelay = 5_000, fixedDelay = 5_000)
+    @Scheduled(initialDelay = 5_000, fixedDelayString = "${block-rate}")
     public void sendBlock() {
         var block = BlockGenerator.generate();
         log.info("Generated block: {}", block);
-        var message = new Message(gson.toJson(block).getBytes(), new MessageProperties());
-        rabbitTemplate.send(rabbitConfig.getQueueName(), message);
+        rabbitSender.send(gson.toJson(block));
         log.info("Sent block to rabbitmq: {}", block);
     }
 

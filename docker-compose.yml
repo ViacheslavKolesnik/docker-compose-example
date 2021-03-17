@@ -10,23 +10,24 @@ services:
         - ./volumes/rabbitmq/data/:/var/lib/rabbitmq/
         - ./volumes/rabbitmq/log/:/var/log/rabbitmq
     environment:
-      RABBITMQ_DEFAULT_USER: ce-user #${RABBITMQ_DEFAULT_USER}
-      RABBITMQ_DEFAULT_PASS: ce-pass #${RABBITMQ_DEFAULT_PASS}
+      RABBITMQ_DEFAULT_USER: ce-user
+      RABBITMQ_DEFAULT_PASS: ce-pass
     networks:
       compose_example_network:
         ipv4_address: 10.1.0.5
     healthcheck:
-      test: ["CMD", "nc", "-z", "10.1.0.5", "5672"]
+      test: rabbitmq-diagnostics -q ping
       interval: 5s
-      timeout: 15s
+      timeout: 5s
       retries: 5
   postgres:
-    image: "postgres:13-alpine"
+    image: postgres:13-alpine
     container_name: 'postgres'
     ports:
         - 5432:5432
     volumes:
       - ./volumes/postgres-data:/var/lib/postgresql/data/
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     environment:
       POSTGRES_USER: ce-user
       POSTGRES_PASSWORD: ce-pass
@@ -37,7 +38,23 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ce-user -d ce_database"]
       interval: 5s
-      timeout: 15s
+      timeout: 5s
+      retries: 5
+  redis:
+    image: redis:6.2.1-alpine
+    container_name: 'redis'
+    ports:
+        - 6379:6379
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - ./volumes/redis-data:/data
+    networks:
+      compose_example_network:
+        ipv4_address: 10.1.0.7
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
       retries: 5
   sender:
     build: sender/.
@@ -47,11 +64,32 @@ services:
       RABBIT_USER: ce-user
       RABBIT_PASSWORD: ce-pass
       RABBIT_QUEUE_NAME: compose-example-queue
+      BLOCK_RATE: 5000
     depends_on:
       - rabbitmq
     networks:
       compose_example_network:
         ipv4_address: 10.1.0.10
+  receiver:
+    build: receiver/.
+    environment:
+      RABBIT_HOST: 10.1.0.5
+      RABBIT_PORT: 5672
+      RABBIT_USER: ce-user
+      RABBIT_PASSWORD: ce-pass
+      RABBIT_QUEUE_NAME: compose-example-queue
+      JDBC_URL: jdbc:postgresql://10.1.0.6:5432/ce_database
+      JDBC_USER: ce-user
+      JDBC_PASSWORD: ce-pass
+      REDIS_HOST: 10.1.0.7
+      REDIS_PORT: 6379
+    depends_on:
+      - rabbitmq
+      - postgres
+      - redis
+    networks:
+      compose_example_network:
+        ipv4_address: 10.1.0.11
 
 networks:
   compose_example_network:
