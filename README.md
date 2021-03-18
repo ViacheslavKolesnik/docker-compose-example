@@ -25,6 +25,6 @@ For example `BLOCK_RATE` from `env/sender.env` controls how often to query block
 ## Helpful commands
 `docker-compose ps` - list running containers. Also shows containers 'health' based on `healthcheck` from `docker-compose.yml`
 
-`docker-compose logs -f {container_name}` - paste `container_name` and watch logs from selected container.
+`docker-compose logs -f {container_name}` - replace `{container_name}` with the name of running container and watch logs from it.
 ## Other
 Each Java application is built via multy-stage build. Build process described in `Dockerfile` in corresponding app root folder
