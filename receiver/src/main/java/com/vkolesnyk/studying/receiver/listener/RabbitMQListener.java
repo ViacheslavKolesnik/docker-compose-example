@@ -26,10 +26,13 @@ public class RabbitMQListener {
     public void receive(String message) {
         log.info("Received message: {}", message);
         var block = gson.fromJson(message, Block.class);
-        blockRepository.insertBlock(block);
-        log.info("Saved block to repository: {}", block);
-        var counter = counterRepository.incrementCounter();
-        log.info("Incremented block counter. Current value is: {}", counter);
+        if (blockRepository.insertBlock(block)) {
+            log.info("Saved block to repository: {}", block);
+            var counter = counterRepository.incrementCounter();
+            log.info("Incremented block counter. Current value is: {}", counter);
+        } else {
+            log.info("Ignored duplicate block");
+        }
     }
 
 }

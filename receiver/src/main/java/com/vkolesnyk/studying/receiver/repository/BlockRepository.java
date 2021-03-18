@@ -13,9 +13,9 @@ public class BlockRepository {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    public void insertBlock(Block block) {
-        var sql = "insert into block(blocknumber, blocktime) values(?, ?)";
-        jdbcTemplate.update(sql, block.getBlockNumber(), block.getBlockTime());
+    public boolean insertBlock(Block block) {
+        var sql = "insert into block(blocknumber, blocktime) values(?, ?) on conflict(blocknumber) do nothing";
+        return jdbcTemplate.update(sql, block.getBlockNumber(), block.getBlockTime()) != 0;
     }
 
 }

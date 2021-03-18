@@ -2,16 +2,14 @@ version: "3.2"
 services:
   rabbitmq:
     image: rabbitmq:3-management-alpine
-    container_name: 'rabbitmq'
     ports:
-        - 5672:5672
-        - 15672:15672
+      - 5672:5672
+      - 15672:15672
     volumes:
-        - ./volumes/rabbitmq/data/:/var/lib/rabbitmq/
-        - ./volumes/rabbitmq/log/:/var/log/rabbitmq
-    environment:
-      RABBITMQ_DEFAULT_USER: ce-user
-      RABBITMQ_DEFAULT_PASS: ce-pass
+      - ./volumes/rabbitmq/data/:/var/lib/rabbitmq/
+      - ./volumes/rabbitmq/log/:/var/log/rabbitmq
+    env_file:
+      - ./env/rabbitmq.env
     networks:
       compose_example_network:
         ipv4_address: 10.1.0.5
@@ -22,16 +20,13 @@ services:
       retries: 5
   postgres:
     image: postgres:13-alpine
-    container_name: 'postgres'
     ports:
-        - 5432:5432
+      - 5432:5432
     volumes:
       - ./volumes/postgres-data:/var/lib/postgresql/data/
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-    environment:
-      POSTGRES_USER: ce-user
-      POSTGRES_PASSWORD: ce-pass
-      POSTGRES_DB: ce_database
+    env_file:
+      - ./env/postgres.env
     networks:
       compose_example_network:
         ipv4_address: 10.1.0.6
@@ -42,9 +37,8 @@ services:
       retries: 5
   redis:
     image: redis:6.2.1-alpine
-    container_name: 'redis'
     ports:
-        - 6379:6379
+      - 6379:6379
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - ./volumes/redis-data:/data
@@ -58,13 +52,9 @@ services:
       retries: 5
   sender:
     build: sender/.
-    environment:
-      RABBIT_HOST: 10.1.0.5
-      RABBIT_PORT: 5672
-      RABBIT_USER: ce-user
-      RABBIT_PASSWORD: ce-pass
-      RABBIT_QUEUE_NAME: compose-example-queue
-      BLOCK_RATE: 5000
+    env_file:
+      - ./env/apps.env
+      - ./env/sender.env
     depends_on:
       - rabbitmq
     networks:
@@ -72,17 +62,9 @@ services:
         ipv4_address: 10.1.0.10
   receiver:
     build: receiver/.
-    environment:
-      RABBIT_HOST: 10.1.0.5
-      RABBIT_PORT: 5672
-      RABBIT_USER: ce-user
-      RABBIT_PASSWORD: ce-pass
-      RABBIT_QUEUE_NAME: compose-example-queue
-      JDBC_URL: jdbc:postgresql://10.1.0.6:5432/ce_database
-      JDBC_USER: ce-user
-      JDBC_PASSWORD: ce-pass
-      REDIS_HOST: 10.1.0.7
-      REDIS_PORT: 6379
+    env_file:
+      - ./env/apps.env
+      - ./env/receiver.env
     depends_on:
       - rabbitmq
       - postgres
